@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Bus, generateBuses } from "@/lib/busData";
-import { Clock, MapPin, Star, Wifi, Zap, Coffee, Armchair, ArrowRight } from "lucide-react";
+import { Clock, MapPin, Star, Wifi, Zap, Coffee, Armchair, ArrowRight, Loader2 } from "lucide-react";
 import { SeatSelectionModal } from "@/components/SeatSelectionModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function SearchPage() {
   const [filteredBuses, setFilteredBuses] = useState<Bus[]>([]);
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Search params
   const from = searchParams.get("from") || "";
@@ -34,11 +36,24 @@ export default function SearchPage() {
   const [priceRange, setPriceRange] = useState<number[]>([0, 100]);
   const [minRating, setMinRating] = useState(0);
 
+  // Check authentication on mount
   useEffect(() => {
-    if (from && to && date) {
-      const generatedBuses = generateBuses(from, to, date);
-      setBuses(generatedBuses);
-      setFilteredBuses(generatedBuses);
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+      return;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (from && to && date && isAuthenticated()) {
+      setLoading(true);
+      // Simulate loading time for smooth transition
+      setTimeout(() => {
+        const generatedBuses = generateBuses(from, to, date);
+        setBuses(generatedBuses);
+        setFilteredBuses(generatedBuses);
+        setLoading(false);
+      }, 500);
     }
   }, [from, to, date]);
 
@@ -74,6 +89,10 @@ export default function SearchPage() {
   }, [buses, busTypes, departureTime, priceRange, minRating]);
 
   const handleSelectSeats = (bus: Bus) => {
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+      return;
+    }
     setSelectedBus(bus);
     setSeatModalOpen(true);
   };
@@ -104,13 +123,27 @@ export default function SearchPage() {
     "Blanket": Armchair,
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <BusNavigation />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Searching for buses...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 animate-in fade-in duration-300">
       <BusNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Summary */}
-        <Card className="mb-6">
+        <Card className="mb-6 animate-in slide-in-from-top duration-500">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -141,7 +174,7 @@ export default function SearchPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 animate-in slide-in-from-left duration-500">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -245,22 +278,22 @@ export default function SearchPage() {
 
           {/* Bus Listings */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 animate-in slide-in-from-right duration-500">
               <h2 className="text-xl font-semibold">
                 {filteredBuses.length} {filteredBuses.length === 1 ? 'Bus' : 'Buses'} Found
               </h2>
             </div>
 
             {filteredBuses.length === 0 ? (
-              <Card>
+              <Card className="animate-in zoom-in duration-300">
                 <CardContent className="p-12 text-center">
                   <p className="text-gray-500 text-lg">No buses found matching your criteria.</p>
                   <Button onClick={clearFilters} className="mt-4">Clear Filters</Button>
                 </CardContent>
               </Card>
             ) : (
-              filteredBuses.map((bus) => (
-                <Card key={bus.id} className="hover:shadow-lg transition-shadow">
+              filteredBuses.map((bus, index) => (
+                <Card key={bus.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in slide-in-from-right" style={{ animationDelay: `${index * 50}ms` }}>
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                       {/* Bus Info */}

@@ -17,17 +17,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowRight, Calendar, Clock, Ticket, Trash2, Eye } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Ticket, Trash2, Eye, Loader2 } from "lucide-react";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function MyBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<any[]>([]);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Check authentication on mount
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
     loadBookings();
-  }, []);
+    setLoading(false);
+  }, [router]);
 
   const loadBookings = () => {
     const data = localStorage.getItem("completedBookings");
@@ -69,6 +78,20 @@ export default function MyBookingsPage() {
       return { label: "Upcoming", variant: "default" as const };
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <BusNavigation />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading your bookings...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

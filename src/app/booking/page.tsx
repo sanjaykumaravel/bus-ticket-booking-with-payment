@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bus, Seat } from "@/lib/busData";
-import { ArrowRight, User, Mail, Phone, Calendar, MapPin, Clock } from "lucide-react";
+import { ArrowRight, User, Mail, Phone, Calendar, MapPin, Clock, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { isAuthenticated } from "@/lib/auth";
 
 interface PassengerInfo {
   name: string;
@@ -34,20 +35,31 @@ export default function BookingPage() {
   const [passengers, setPassengers] = useState<PassengerInfo[]>([]);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
+  // Check authentication on mount
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
     const data = localStorage.getItem("currentBooking");
     if (data) {
-      const parsed = JSON.parse(data);
-      setBookingData(parsed);
-      // Initialize passenger forms
-      setPassengers(
-        parsed.seats.map(() => ({
-          name: "",
-          age: "",
-          gender: "",
-        }))
-      );
+      setTimeout(() => {
+        const parsed = JSON.parse(data);
+        setBookingData(parsed);
+        // Initialize passenger forms
+        setPassengers(
+          parsed.seats.map(() => ({
+            name: "",
+            age: "",
+            gender: "",
+          }))
+        );
+        setLoading(false);
+      }, 300);
     } else {
       router.push("/");
     }
@@ -69,6 +81,7 @@ export default function BookingPage() {
 
   const handleProceedToPayment = () => {
     if (isFormValid() && bookingData) {
+      setProcessing(true);
       const completeBookingData = {
         ...bookingData,
         passengers,
@@ -76,29 +89,38 @@ export default function BookingPage() {
         contactPhone,
       };
       localStorage.setItem("currentBooking", JSON.stringify(completeBookingData));
-      router.push("/payment");
+      setTimeout(() => {
+        router.push("/payment");
+      }, 300);
     }
   };
 
-  if (!bookingData) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <BusNavigation />
         <div className="flex items-center justify-center h-96">
-          <p className="text-gray-500">Loading...</p>
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading booking details...</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  if (!bookingData) {
+    return null;
+  }
+
   const totalPrice = bookingData.seats.reduce((sum, seat) => sum + seat.price, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 animate-in fade-in duration-300">
       <BusNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+        <div className="mb-6 animate-in slide-in-from-top duration-500">
           <h1 className="text-3xl font-bold text-gray-900">Complete Your Booking</h1>
           <p className="text-gray-600 mt-1">Fill in passenger details to proceed</p>
         </div>
@@ -107,7 +129,7 @@ export default function BookingPage() {
           {/* Passenger Details Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Contact Information */}
-            <Card>
+            <Card className="animate-in slide-in-from-left duration-500">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Mail className="h-5 w-5 mr-2" />
@@ -144,7 +166,7 @@ export default function BookingPage() {
 
             {/* Passenger Details */}
             {passengers.map((passenger, index) => (
-              <Card key={index}>
+              <Card key={index} className="animate-in slide-in-from-left duration-500" style={{ animationDelay: `${(index + 1) * 100}ms` }}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center">
@@ -203,7 +225,7 @@ export default function BookingPage() {
 
           {/* Booking Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
+            <div className="sticky top-24 animate-in slide-in-from-right duration-500">
               <Card>
                 <CardHeader>
                   <CardTitle>Booking Summary</CardTitle>
@@ -284,11 +306,21 @@ export default function BookingPage() {
 
                   <Button 
                     onClick={handleProceedToPayment}
-                    disabled={!isFormValid()}
+                    disabled={!isFormValid() || processing}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                     size="lg"
                   >
-                    Proceed to Payment
+                    {processing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Proceed to Payment
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
 
                   <p className="text-xs text-center text-gray-500">

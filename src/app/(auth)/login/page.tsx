@@ -32,9 +32,10 @@ function LoginForm() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated()) {
-      router.push("/");
+      const redirectTo = searchParams?.get("redirect") || "/";
+      router.replace(redirectTo);
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,17 +54,18 @@ function LoginForm() {
       const data = await response.json();
 
       if (response.ok) {
+        // Set localStorage synchronously
         localStorage.setItem("auth-token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        toast.success("Login successful! Redirecting...");
+        toast.success("Login successful!");
         
-        // Smooth redirect with slight delay
-        setTimeout(() => {
-          const redirectTo = searchParams?.get("redirect") || "/";
-          router.push(redirectTo);
-          router.refresh();
-        }, 500);
+        // Force a small delay to ensure localStorage is persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const redirectTo = searchParams?.get("redirect") || "/";
+        router.replace(redirectTo);
+        router.refresh();
       } else {
         toast.error(data.error || "Invalid email or password");
       }
@@ -105,16 +107,17 @@ function LoginForm() {
       const data = await response.json();
 
       if (response.ok) {
+        // Set localStorage synchronously
         localStorage.setItem("auth-token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        toast.success("Account created successfully! Redirecting...");
+        toast.success("Account created successfully!");
         
-        // Auto-login and redirect
-        setTimeout(() => {
-          router.push("/");
-          router.refresh();
-        }, 500);
+        // Force a small delay to ensure localStorage is persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        router.replace("/");
+        router.refresh();
       } else {
         toast.error(data.error || "Failed to create account");
       }

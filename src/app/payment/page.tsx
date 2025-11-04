@@ -10,14 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Smartphone, Lock, ArrowRight, Check } from "lucide-react";
+import { CreditCard, Smartphone, Lock, ArrowRight, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function PaymentPage() {
   const router = useRouter();
   const [bookingData, setBookingData] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Credit Card fields
   const [cardNumber, setCardNumber] = useState("");
@@ -28,10 +30,19 @@ export default function PaymentPage() {
   // UPI fields
   const [upiId, setUpiId] = useState("");
 
+  // Check authentication on mount
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
     const data = localStorage.getItem("currentBooking");
     if (data) {
-      setBookingData(JSON.parse(data));
+      setTimeout(() => {
+        setBookingData(JSON.parse(data));
+        setLoading(false);
+      }, 300);
     } else {
       router.push("/");
     }
@@ -96,33 +107,40 @@ export default function PaymentPage() {
     }, 2000);
   };
 
-  if (!bookingData) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <BusNavigation />
         <div className="flex items-center justify-center h-96">
-          <p className="text-gray-500">Loading...</p>
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading payment options...</p>
+          </div>
         </div>
       </div>
     );
+  }
+
+  if (!bookingData) {
+    return null;
   }
 
   const totalPrice = bookingData.seats.reduce((sum: number, seat: any) => sum + seat.price, 0);
   const finalAmount = (totalPrice + 2 + totalPrice * 0.05).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 animate-in fade-in duration-300">
       <BusNavigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+        <div className="mb-6 animate-in slide-in-from-top duration-500">
           <h1 className="text-3xl font-bold text-gray-900">Payment</h1>
           <p className="text-gray-600 mt-1">Choose your preferred payment method</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Payment Methods */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 animate-in slide-in-from-left duration-500">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -314,7 +332,10 @@ export default function PaymentPage() {
                   size="lg"
                 >
                   {processing ? (
-                    <>Processing Payment...</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing Payment...
+                    </>
                   ) : (
                     <>
                       Pay ${finalAmount}
@@ -328,7 +349,7 @@ export default function PaymentPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
+            <div className="sticky top-24 animate-in slide-in-from-right duration-500">
               <Card>
                 <CardHeader>
                   <CardTitle>Order Summary</CardTitle>
