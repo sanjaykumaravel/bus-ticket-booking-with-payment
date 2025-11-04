@@ -40,10 +40,22 @@ export default function Home() {
     }
   };
 
-  const handleRouteClick = (route: { from: string; to: string }) => {
-    setFrom(route.from);
-    setTo(route.to);
-    setDate(new Date());
+  const handleRouteClick = (route: { from: string; to: string }, e: React.MouseEvent) => {
+    // Prevent double-click issues
+    if (searching) return;
+    
+    // Check authentication before allowing search
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=" + encodeURIComponent("/"));
+      return;
+    }
+
+    setSearching(true);
+    const formattedDate = format(new Date(), "yyyy-MM-dd");
+    
+    setTimeout(() => {
+      router.push(`/search?from=${route.from}&to=${route.to}&date=${formattedDate}&passengers=1`);
+    }, 300);
   };
 
   return (
@@ -194,8 +206,7 @@ export default function Home() {
             {featuredRoutes.map((route, index) => (
               <Card 
                 key={index} 
-                className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                onClick={() => handleRouteClick(route)}
+                className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -215,8 +226,20 @@ export default function Home() {
                       Popular: {route.popularTimes}
                     </div>
                   </div>
-                  <Button className="w-full mt-4" variant="outline">
-                    View Buses
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={(e) => handleRouteClick(route, e)}
+                    disabled={searching}
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "View Buses"
+                    )}
                   </Button>
                 </CardContent>
               </Card>
