@@ -1,22 +1,5 @@
-import jwt from 'jsonwebtoken';
-
-const SECRET_KEY = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
-
-export interface JWTPayload {
-  userId: number;
-  email: string;
-  iat: number;
-  exp: number;
-}
-
-export function verifyToken(token: string): JWTPayload | null {
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY) as JWTPayload;
-    return decoded;
-  } catch (error) {
-    return null;
-  }
-}
+// Client-safe authentication utilities
+// DO NOT import server-only libraries like 'jsonwebtoken' here
 
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
@@ -25,7 +8,6 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
   
   // Client-side: just check if token exists and user data is present
-  // Don't verify JWT on client-side as it requires Node.js crypto modules
   const userStr = localStorage.getItem('user');
   if (!userStr) return false;
   
